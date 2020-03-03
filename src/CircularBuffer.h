@@ -24,7 +24,7 @@
 
 /*** Circular Buffer API ***/
 typedef struct queue {
-	int *		buffer;				/* MEM location constant, not value */
+	int *			buffer;				/* MEM location constant, not value */
 	int*			buffer_end;			
 	int*	        data_start; 		/* First element */
     int*	        data_end; 			/* 1 past the last element */
