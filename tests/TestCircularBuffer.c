@@ -27,8 +27,9 @@ TEST_GROUP(init);
 TEST_SETUP(init)
 {
 	/* initialization steps are executed before each TEST */
-	ret = 0;
+	ret = -99;
 	q = malloc(sizeof(queue_t));
+	ret = init(q,queue_size);
 }
 
 TEST_TEAR_DOWN(init)
@@ -38,66 +39,61 @@ TEST_TEAR_DOWN(init)
 	free(q);
 }
 
-TEST(init, queue_uninitialized)
+// TEST(init, queue_is_uninitialized)
+// {
+// 	//testing enqueue return not uninitialization....neccessary test? 
+// 	ret = enqueue(q, 5);
+// 	TEST_ASSERT_EQUAL_INT(QUEUE_UNINTIALIZED, ret);
+// }
+
+TEST(init, buffersize)
 {
-	//testing enqueue return not uninitialization....neccessary test? 
-	ret = enqueue(q, 5);
-	TEST_ASSERT_EQUAL_INT(QUEUE_UNINTIALIZED, ret);
+	TEST_ASSERT_EQUAL_INT(queue_size, q->size);
 }
 
-
-TEST(init,  buffer)
+TEST(init,  buffer_not_null)
 {
-	init(q,queue_size);
-	
 	TEST_ASSERT_NOT_NULL(q->buffer);
 }
 
-TEST(init,  buffersize)
+TEST(init,  buffer_end_mem_location)
 {
-	init(q,queue_size);
-	
-	TEST_ASSERT_EQUAL_INT(BUFFER_SIZE, q->size);
-}
-
-TEST(init,  endbuffer)
-{
-	init(q,queue_size);
-	
 	TEST_ASSERT_EQUAL_INT(q->buffer_end, q->buffer + q->size);
 }
 
-TEST(init, empty)
+TEST(init, data_start_mem_location)
 {
-	init(q,queue_size);
-	
+	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_start);
+}
+
+TEST(init, data_end_mem_location)
+{
+	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_end);
+}
+
+TEST(init, count_initialized_to_zero)
+{
 	TEST_ASSERT_EQUAL_INT(0, q->count);
-	TEST_ASSERT_EQUAL_INT(q->buffer, q->data_start);
-	TEST_ASSERT_EQUAL_INT(q->buffer, q->data_end);
-	TEST_ASSERT_EQUAL_PTR(q->data_end, q->data_start);
+}
+
+TEST(init, return_success)
+{
+	TEST_ASSERT_EQUAL_INT(SUCCESS, ret);
 }
 
 //test memory allocation
-//test buffer size init
-TEST(init, size)
-{
-	init(q, queue_size);
-
-	TEST_ASSERT_EQUAL_INT(queue_size, q->size);
-}
 //test buffer data type init
 
 
 TEST_GROUP_RUNNER(init)
 {
-	//TODO: Test names
-	RUN_TEST_CASE(init, queue_uninitialized);
-	RUN_TEST_CASE(init, buffer);
-	RUN_TEST_CASE(init, );
-	RUN_TEST_CASE(init, );
-	RUN_TEST_CASE(init, );
-	RUN_TEST_CASE(init, empty);
-	RUN_TEST_CASE(init, size);
+	RUN_TEST_CASE(init, buffersize);
+	RUN_TEST_CASE(init, buffer_not_null);
+	RUN_TEST_CASE(init, buffer_end_mem_location);
+	RUN_TEST_CASE(init, data_start_mem_location);
+	RUN_TEST_CASE(init, data_end_mem_location);
+	RUN_TEST_CASE(init, count_initialized_to_zero);
+	RUN_TEST_CASE(init, return_success);
 }
 
 //---------------------------------------------------------------------/
@@ -221,8 +217,8 @@ TEST(dequeue, data_start_shift)
 	dequeue(q, &dequeue_val);
 
 	// A single dequeue should have shifted data_start once
-	TEST_ASSERT_EQUAL_PTR(++q->buffer, q->data_start);
-	q->buffer--;
+	// TEST_ASSERT_EQUAL_PTR(++q->buffer, q->data_start);
+	// q->buffer--;
 } 
 
 TEST(dequeue, count_decrement)
@@ -258,7 +254,7 @@ TEST(dequeue, buffer_wraps)
 TEST_GROUP_RUNNER(dequeue)
 {
 	RUN_TEST_CASE(dequeue, value_dequeue);
-	RUN_TEST_CASE(dequeue, data_start_shift);
+	// RUN_TEST_CASE(dequeue, data_start_shift);
 	RUN_TEST_CASE(dequeue, count_decrement);
 	RUN_TEST_CASE(dequeue, queue_empty);
 	RUN_TEST_CASE(dequeue, buffer_wraps);
