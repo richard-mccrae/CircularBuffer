@@ -19,11 +19,16 @@
 
 
 /*** Circular Buffer API ***/
-
-void
+//TODO: Add overwrite or error if full boolean
+//TODO: implement handle?
+int
 init (queue_t* q, size_t size)
 {
-	assert(0 != q);
+	if (q == NULL)
+	{
+		return NULL_PTR;
+	}
+
 	q->size = size;
 	q->buffer = calloc(q->size, sizeof(q->buffer));
 	// Queue size is one element more than defined by BUFFER_SIZE
@@ -31,6 +36,8 @@ init (queue_t* q, size_t size)
 	q->data_start = q->buffer;
 	q->data_end = q->buffer;
 	q->count=0;
+
+	return SUCCESS;
 }
 
 
