@@ -1,440 +1,113 @@
-/*	Nordic Semiconductor
- *	
- * 	Assignment:	Circular Buffer in C
+/*	Circular Buffer unit tests
  *	Author: Richard Hermstad McCrae
  *  	File:	TestCicularBuffer.c
  *	Date:   15/01/2020
+ *
+ * TODO: Look at unity_memory.h to test mem alloc and leaks
 */
 
 
+#include <assert.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
 #define UNITY_FIXTURE_NO_EXTRAS /* Dont import unity_memory.h */
 #include <unity/unity_fixture.h>
  
 #include "../src/CircularBuffer.h"
 
 #define  PRINT_INFO		0
+#define  BUFFER_SIZE	10
+
 
 //---------------------------------------------------------------------/
 
 /*** Locals ***/
-static int ret;
-static queue_t *q;
-static size_t queue_size = 10;
+static const int size = BUFFER_SIZE;
+static uint8_t* buffer;
+static cbuf_handle_t buffer_handle = NULL;
+
+
+//---------------------------------------------------------------------/
 
 TEST_GROUP(init);
 
 TEST_SETUP(init)
 {
 	/* initialization steps are executed before each TEST */
-	ret = -99;
-	q = malloc(sizeof(queue_t));
-	ret = init(q,queue_size);
+	buffer = malloc(size* sizeof(uint8_t));
+	assert(buffer);
+	memset(buffer, 0, size * sizeof(uint8_t));
+	buffer_handle = circular_buf_init(buffer, size);
 }
 
 TEST_TEAR_DOWN(init)
 {
 	/* clean up steps are executed after each TEST */
-	free(q->buffer);
-	free(q);
+	free(buffer);
 }
 
-// TEST(init, queue_is_uninitialized)
-// {
-// 	//testing enqueue return not uninitialization....neccessary test? 
-// 	ret = enqueue(q, 5);
-// 	TEST_ASSERT_EQUAL_INT(QUEUE_UNINTIALIZED, ret);
-// }
 
-TEST(init, buffersize)
+TEST(init, initialized_empty)
 {
-	TEST_ASSERT_EQUAL_INT(queue_size, q->size);
+	TEST_ASSERT_TRUE(circular_buf_empty(buffer_handle));
 }
 
-TEST(init,  buffer_not_null)
+TEST(init, buffer_size)
 {
-	TEST_ASSERT_NOT_NULL(q->buffer);
+	int ret_size = circular_buf_size(buffer_handle);
+
+	TEST_ASSERT_EQUAL_INT(BUFFER_SIZE, ret_size);
 }
 
-TEST(init,  buffer_end_mem_location)
+TEST(init, count_init_to_zero)
 {
-	TEST_ASSERT_EQUAL_INT(q->buffer_end, q->buffer + q->size);
+	int ret_count = circular_buf_count(buffer_handle);
+
+	TEST_ASSERT_EQUAL_INT(0, ret_count);
 }
-
-TEST(init, data_start_mem_location)
-{
-	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_start);
-}
-
-TEST(init, data_end_mem_location)
-{
-	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_end);
-}
-
-TEST(init, count_initialized_to_zero)
-{
-	TEST_ASSERT_EQUAL_INT(0, q->count);
-}
-
-TEST(init, return_success)
-{
-	TEST_ASSERT_EQUAL_INT(SUCCESS, ret);
-}
-
-//test memory allocation
-//test buffer data type init
-
 
 TEST_GROUP_RUNNER(init)
 {
-	RUN_TEST_CASE(init, buffersize);
-	RUN_TEST_CASE(init, buffer_not_null);
-	RUN_TEST_CASE(init, buffer_end_mem_location);
-	RUN_TEST_CASE(init, data_start_mem_location);
-	RUN_TEST_CASE(init, data_end_mem_location);
-	RUN_TEST_CASE(init, count_initialized_to_zero);
-	RUN_TEST_CASE(init, return_success);
-}
-
-//---------------------------------------------------------------------/
-
-TEST_GROUP(enqueue);
-
-TEST_SETUP(enqueue)
-{
-	ret = 0;
-	q = malloc(sizeof(queue_t));
-	init(q, queue_size);
-}
-
-TEST_TEAR_DOWN(enqueue)
-{
-	free(q->buffer);
-	free(q);
-}
-
-TEST(enqueue, value_enqueue)
-{
-	int 		ret = -1; 
-	int			val = 4;
-
-	ret = enqueue(q, val);
-	TEST_ASSERT_EQUAL_INT(SUCCESS, ret);
-	TEST_ASSERT_EQUAL_INT(val, *q->data_start);
-	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_start);
-	TEST_ASSERT_EQUAL_INT(0, *q->data_end);
-}
-
-TEST(enqueue, data_end_shift)
-{
-	int			stop = 4;
-	
-	// Enqueue arbitray number of elements
-	for (int i=0; i<stop; i++)
-	{
-		enqueue(q, i);
-	}
-	
-	TEST_ASSERT_EQUAL_PTR(q->buffer + stop,q->data_end);
-}
-
-TEST(enqueue, count_increment)
-{
-	enqueue(q, 9);
-	
-	TEST_ASSERT_EQUAL_INT(1, q->count);
-}
-
-TEST(enqueue, queue_full)
-{
-	for (int i=0; i<(q->size+1); i++)
-	{
-		ret = enqueue(q, i);
-	}
-	
-	TEST_ASSERT_EQUAL_INT(QUEUE_IS_FULL, ret);
-	TEST_ASSERT_EQUAL_INT(q->size, q->count);
-}
-
-TEST(enqueue, buffer_wraps)
-{
-	// Enqueue until full, data_end should equal buffer
-	for (int i=0; i<q->size; i++)
-	{
-		enqueue(q, i);
-	}
-
-	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_end);
-}
-
-TEST_GROUP_RUNNER(enqueue)
-{
-	RUN_TEST_CASE(enqueue, value_enqueue);
-	RUN_TEST_CASE(enqueue, data_end_shift);
-	RUN_TEST_CASE(enqueue, count_increment);
-	RUN_TEST_CASE(enqueue, queue_full);
-	RUN_TEST_CASE(enqueue, buffer_wraps);
+	RUN_TEST_CASE(init, initialized_empty);
+	RUN_TEST_CASE(init, buffer_size);
+	RUN_TEST_CASE(init, count_init_to_zero);
 }
 
 
 //---------------------------------------------------------------------/
 
-TEST_GROUP(dequeue);
+TEST_GROUP(full);
 
-static int enqueue_val, dequeue_val, i;
-
-TEST_SETUP(dequeue)
+TEST_SETUP(full)
 {
-	ret = 0;
-	q = malloc(sizeof(queue_t));
-	init(q, queue_size);
-	enqueue_val = 11;
-	dequeue_val = 0;
+	buffer = malloc(size* sizeof(uint8_t));
+	assert(buffer);
+	memset(buffer, 0, size * sizeof(uint8_t));
+	buffer_handle = circular_buf_init(buffer, size);
 }
 
-TEST_TEAR_DOWN(dequeue)
+TEST_TEAR_DOWN(full)
 {
-	free(q->buffer);
-	free(q);
+	free(buffer);
 }
 
-TEST(dequeue, value_dequeue)
-{	
-	enqueue(q, enqueue_val);
-	ret = dequeue(q, &dequeue_val);
-	
-	TEST_ASSERT_EQUAL_INT(SUCCESS, ret);
-	TEST_ASSERT_EQUAL_INT(enqueue_val, dequeue_val);
+TEST(full, return_true_when_full)
+{
+	// Push until full
+	TEST_ASSERT_TRUE(circular_buf_full(buffer_handle));
 }
 
-TEST(dequeue, data_start_shift)
+TEST(full, return_false_when_not_full)
 {
-	// Enqueue arbitray number of elements
-	for (i=0; i<3; i++)
-	{
-		enqueue(q, i);
-	}
-	dequeue(q, &dequeue_val);
-
-	// A single dequeue should have shifted data_start once
-	// TEST_ASSERT_EQUAL_PTR(++q->buffer, q->data_start);
-	// q->buffer--;
-} 
-
-TEST(dequeue, count_decrement)
-{
-	enqueue(q, enqueue_val);
-	dequeue(q, &dequeue_val);
-	
-	TEST_ASSERT_EQUAL_INT(0, q->count);
+	// First assert when empty, then push until full and pop one.
+	TEST_ASSERT_FALSE(circular_buf_full(buffer_handle));
 }
 
-TEST(dequeue, queue_empty)
+TEST_GROUP_RUNNER(full)
 {
-	ret = dequeue(q, &dequeue_val);
-	TEST_ASSERT_EQUAL_INT(QUEUE_IS_EMPTY, ret);
-}
-
-TEST(dequeue, buffer_wraps)
-{
-	// Enqueue until full, data_end and data_start equal buffer address
-	for (i=0; i<q->size; i++)
-	{
-		enqueue(q, i);
-	}
-	// Dequeue until empty to shift and wrap data_start
-	for (i=0; i<q->size; i++)
-	{
-		dequeue(q, &dequeue_val);
-	}
-
-	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_start);
-}
-
-TEST_GROUP_RUNNER(dequeue)
-{
-	RUN_TEST_CASE(dequeue, value_dequeue);
-	// RUN_TEST_CASE(dequeue, data_start_shift);
-	RUN_TEST_CASE(dequeue, count_decrement);
-	RUN_TEST_CASE(dequeue, queue_empty);
-	RUN_TEST_CASE(dequeue, buffer_wraps);
-}
-
-//---------------------------------------------------------------------/
-
-TEST_GROUP(is_empty);
-
-static int enqueue_val, dequeue_val, i;
-static bool bIsEmpty;
-
-TEST_SETUP(is_empty)
-{
-	ret = 0;
-	q = malloc(sizeof(queue_t));
-	init(q, queue_size);
-	enqueue_val = 11;
-	dequeue_val = 0;
-	bIsEmpty = false;
-}
-
-TEST_TEAR_DOWN(is_empty)
-{
-	free(q->buffer);
-	free(q);
-}
-
-
-TEST(is_empty, return_true)
-{
-	bIsEmpty = is_empty(q);
-	TEST_ASSERT_TRUE(bIsEmpty);
-}
-
-TEST(is_empty, return_false)
-{
-	enqueue(q, enqueue_val);
-	bIsEmpty = is_empty(q);	
-	TEST_ASSERT_FALSE(bIsEmpty);
-}
-
-
-TEST_GROUP_RUNNER(is_empty)
-{
-	RUN_TEST_CASE(is_empty, return_true);
-	RUN_TEST_CASE(is_empty, return_false);
-}
-
-//---------------------------------------------------------------------/
-
-/* Just a final test for fun... */
-TEST_GROUP(use);
-
-static int dequeue_val, i;
-static bool bIsEmpty;
-
-TEST_SETUP(use)
-{
-	ret = 0;
-	q = malloc(sizeof(queue_t));
-	init(q, queue_size);
-	i = 0;
-	dequeue_val = 0;
-	bIsEmpty = false;
-}
-
-TEST_TEAR_DOWN(use)
-{
-	free(q->buffer);
-	free(q);
-}
-
-TEST(use, multiple_enqueue_dequeue)
-{
-	if ( PRINT_INFO){
-		printf("Beginning of 'multiple_enqueue_dequeue' test run\n");
-		printf("buffer: %p, data_end: %p, data_start: %p\n", q->buffer, q->data_end, q->data_start);
-		printf("Enqueuing\n");
-	}
-	// Enqueue until full
-	for (i=1; i<=q->size; i++)
-	{
-		ret = enqueue(q, i);
-		TEST_ASSERT_EQUAL_INT(SUCCESS, ret);
-		TEST_ASSERT_EQUAL_INT(i, q->count);	
-		if ( PRINT_INFO){
-			printf("buffer: %p, data_end=%d @ %p, data_start=%d @ %p\n",
-				q->buffer, 
-				i,
-				q->data_end, 
-				*q->data_start,
-				q->data_start
-			);
-		}	
-	}
-	TEST_ASSERT_FALSE(bIsEmpty);
-	TEST_ASSERT_EQUAL_INT(8, q->count);
-	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_end);
-	TEST_ASSERT_EQUAL_PTR(q->buffer, q->data_start);
-	
-	// Dequeue aribtary number of times
-	if ( PRINT_INFO){
-		printf("Dequeuing\n");
-	}
-	for (i=1; i<=5; i++)
-	{
-		ret = dequeue(q, &dequeue_val);
-		TEST_ASSERT_EQUAL_INT(SUCCESS, ret);
-		TEST_ASSERT_EQUAL_INT(8-i, q->count);
-		if ( PRINT_INFO){
-			printf("buffer: %p, data_end=%d @ %p, data_start=%d @ %p\n",
-				q->buffer, 
-				*q->data_end,
-				q->data_end, 
-				*q->data_start,
-				q->data_start
-			);	
-		}
-	}
-	// Enqueue again
-	if ( PRINT_INFO){
-		printf("Enqueue again...\n");
-	}
-	for (i=11; i<=18; i++)
-	{
-		ret = enqueue(q, i);
-		if ( PRINT_INFO){
-			printf("buffer: %p, data_end=%d @ %p, data_start=%d @ %p\n",
-				q->buffer, 
-				i,
-				q->data_end, 
-				*q->data_start,
-				q->data_start
-			);	
-		}	
-	}
-	TEST_ASSERT_EQUAL_INT(QUEUE_IS_FULL, ret);
-	
-	// Dequeue until past empty...
-	if ( PRINT_INFO){
-		printf("Prior to a final dequeue round\n");
-		printf("buffer: %p, data_end=%d @ %p, data_start=%d @ %p, count=%d\n",
-			q->buffer, 
-			*q->data_end,
-			q->data_end, 
-			*q->data_start,
-			q->data_start,
-			q->count
-		);	
-		printf("Beging dequeuing...\n");
-	}
-	for (i=1; i<=9; i++)
-	{
-		ret = dequeue(q, &dequeue_val);
-		if ( PRINT_INFO){
-			printf("buffer: %p, data_end=%d @ %p, data_start=%d @ %p, count:%d\n",
-				q->buffer, 
-				*q->data_end,
-				q->data_end, 
-				*q->data_start,
-				q->data_start,
-				q->count
-			);	
-		}
-	}
-	TEST_ASSERT_EQUAL_INT(QUEUE_IS_EMPTY, ret);
-	TEST_ASSERT_TRUE(is_empty(q));
-	if ( PRINT_INFO){
-		printf("buffer: %p, data_end=%d @ %p, data_start=%d @ %p\n",
-			q->buffer, 
-			*q->data_end,
-			q->data_end, 
-			*q->data_start,
-			q->data_start
-		);	
-	}
-}
-
-TEST_GROUP_RUNNER(use)
-{
-	RUN_TEST_CASE(use, multiple_enqueue_dequeue);
+	RUN_TEST_CASE(full, return_true_when_full);
+	RUN_TEST_CASE(full, return_false_when_not_full);
 }

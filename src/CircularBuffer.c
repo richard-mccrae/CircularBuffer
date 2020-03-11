@@ -1,129 +1,113 @@
-/*	Nordic Semiconductor
- *	
- * 	Assignment:	Circular Buffer in C
+/*	
+ *  Cicrular Buffer API
  *	Author: Richard Hermstad McCrae
  *  	File:	CicularBuffer.c
  *	Date:   15/01/2020
+ *
+ * TODO:
+ * 	Add encapsulation
+ * 	update current tests, improve and simplify
+ * 	add memory tests
+ * 	Improve handle?
+ * 	Make thread safe via MUTEXs
+ *  Allows users to initialize own buffer struct? Breaks encaps
 */
 
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
- 
+#include <string.h>
+
 #include "CircularBuffer.h"
 
 #define  PRINT_INFO		0
+
+struct circular_buf_t {
+	uint8_t * buffer;
+	size_t 	head;			// Incremented when element is added
+	size_t 	tail;			// Incremented when element is removed
+	size_t 	size; 			// Maximum number of elements
+	bool 	full;
+};
 
 
 /*** Circular Buffer API ***/
 //TODO: Add overwrite or error if full boolean
 //TODO: implement handle?
-int
-init (queue_t* q, size_t size)
+cbuf_handle_t
+circular_buf_init (uint8_t* buffer, size_t size)
 {
-	if (q == NULL)
-	{
-		return NULL_PTR;
-	}
+	assert(buffer && size);
 
-	q->size = size;
-	q->buffer = calloc(q->size, sizeof(q->buffer));
-	// Queue size is one element more than defined by BUFFER_SIZE
-	q->buffer_end = q->buffer + q->size;
-	q->data_start = q->buffer;
-	q->data_end = q->buffer;
-	q->count=0;
+	cbuf_handle_t cbuf = malloc(sizeof(circular_buf_t));
+	assert(cbuf);
 
-	return SUCCESS;
+	cbuf->buffer = buffer;
+	cbuf->size = size;
+	circular_buf_reset(cbuf);
+
+	assert(circular_buf_empty(cbuf));
+
+	return cbuf;
 }
 
-
-int
-enqueue(queue_t* q, int val)
+void
+circular_buf_reset(cbuf_handle_t cbuf)
 {
-	if (q == NULL || q->buffer == NULL)
-	{
-		return QUEUE_UNINTIALIZED;
-	}
-	if (q->count >= q->size)
-	{
-		return QUEUE_IS_FULL;
-	}
+	assert(cbuf);
 
-	*q->data_end = val;
-	q->count++;
-	
-	if (PRINT_INFO) 
-		printf("Enqueued %d to data_end at MEM: %p\n", *q->data_end, q->data_end);
-		
-	q->data_end++;
-	
-	// Wrap queue
-	if (q->data_end == q->buffer_end)
-	{
-		if (PRINT_INFO)
-			printf("data_end wrapping...\n");
-		q->data_end = q->buffer;
-	}
-
-	if (PRINT_INFO) 
-	{
-		printf("data_end now at MEM: %p\n", q->data_end);
-		printf("count is now: %d\n", q->count);	
-	}	
-	
-	return SUCCESS;
+	cbuf->head = 0;
+	cbuf->tail = 0;
+	cbuf->full = false;
 }
 
-int
-dequeue(queue_t* q, int* val)
+void
+circular_buf_free(cbuf_handle_t cbuf)
 {
-	if (q == NULL || q->buffer == NULL)
-	{
-		return QUEUE_UNINTIALIZED;
-	}
-	if (q->count == 0)
-	{
-		return QUEUE_IS_EMPTY;
-	}
-	
-	if (PRINT_INFO)
-	{
-		printf("Dequeue %d from data_start MEM: %p\n", *q->data_start, q->data_start);
-	}
-	
-	*val = *q->data_start;
-	q->data_start++;
-	q->count--;
-	
-	// Wrap
-	if(q->data_start == q->buffer_end)
-	{
-		if (PRINT_INFO)
-			printf("data_start wrapping...\n");
-		q->data_start = q->buffer;
-	}
-	
-	if (PRINT_INFO)
-	{
-		printf("Count now: %d, Data_start MEM now: %p\n", q->count, q->data_start);
-	}
-	
-	return SUCCESS;
+	assert(cbuf);
+	free(cbuf);
 }
-
 
 bool
-is_empty(queue_t* q)
+circular_buf_full(cbuf_handle_t cbuf)
 {
-	assert(q != NULL);
-	assert(q->buffer != NULL);
+	assert(cbuf);
 
-	if (q->count > 0 )
-		return false;
-	else
-		return true;
+	return cbuf->full;
+}
+
+bool
+circular_buf_empty(cbuf_handle_t cbuf)
+{
+	assert(cbuf);
+
+	// Full flag not set && head ptr = tail ptr
+	return (!cbuf->full && (cbuf->head == cbuf->tail));
+}
+
+size_t
+circular_buf_size(cbuf_handle_t cbuf)
+{
+	assert(cbuf);
+
+	return cbuf->size;
+}
+
+size_t
+circular_buf_count(cbuf_handle_t cbuf)
+{
+	assert(cbuf);
+	size_t count = -1;
+
+	if (!cbuf->full)
+	{
+		count = cbuf->head - cbuf->tail;
+	} else {
+		count = cbuf->size;
+	}
+	
+	return count;
 }
