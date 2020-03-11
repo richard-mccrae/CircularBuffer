@@ -11,10 +11,7 @@
 static void runAllTests()
 {
 	RUN_TEST_GROUP(init);
-	RUN_TEST_GROUP(enqueue);
-	RUN_TEST_GROUP(dequeue);
-	RUN_TEST_GROUP(is_empty);
-	// RUN_TEST_GROUP(use);
+	// RUN_TEST_GROUP(full);
 }
 
 
