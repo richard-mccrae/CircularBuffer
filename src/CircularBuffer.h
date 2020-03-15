@@ -19,10 +19,11 @@
 #include <stdbool.h>
 
 
-#define QUEUE_UNINTIALIZED   -1
-#define SUCCESS				 0
-#define BUFFER_EMPTY		 1
-#define BUFFER_FUL  L		 2
+#define QUEUE_UNINTIALIZED          -1
+#define SUCCESS				        0
+#define BUFFER_EMPTY		        1
+#define ERROR_BUFFER_FULL 		    -2
+#define SUCCESS_BUFFER_FULL         2
 
 // Opache circular buffer structure
 typedef struct circular_buf_t circular_buf_t;
@@ -62,33 +63,6 @@ size_t circular_buf_size (cbuf_handle_t cbuf);
 
 // Returns number of elements currently in buffer
 size_t circular_buf_count (cbuf_handle_t cbuf);
-
-
-
-// #define QUEUE_UNINTIALIZED -1
-// #define SUCCESS				0
-// #define NULL_PTR			-2
-// #define QUEUE_IS_EMPTY		1
-// #define QUEUE_IS_FULL		2
-// #define	BUFFER_SIZE			8
-
-
-// /*** Circular Buffer API ***/
-// typedef struct queue {
-// 	int *const		buffer;				/* MEM location constant, not value */
-// 	int *			buffer_end;			
-// 	int*	        data_start; 		/* First element */
-//     int*	        data_end; 			/* 1 past the last element */
-// 	unsigned int 	count;				/* Number of elements in queue*/
-// 	size_t	     	size;				/* Capacity of queue */
-// } queue_t;
-
-// int 	init(queue_t* q, size_t size);
-// int		enqueue(queue_t* q, int val);
-// int 	dequeue(queue_t* q, int* val);
-// bool	is_empty(queue_t* q);
-
-
 
 
 #endif /* CIRCULAR_BUFFER_H_ */
