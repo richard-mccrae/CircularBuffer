@@ -26,10 +26,13 @@
 
 /*** Locals ***/
 static const int size = BUFFER_SIZE;
-static uint8_t* buffer;
+static int8_t* buffer;
 static cbuf_handle_t buffer_handle = NULL;
 int ret, i;
-
+// Test elements to enqeueue, dequeue, and print
+static int8_t element[] = {
+	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'
+};
 
 //---------------------------------------------------------------------/
 
@@ -38,9 +41,9 @@ TEST_GROUP(init);
 TEST_SETUP(init)
 {
 	/* initialization steps are executed before each TEST */
-	buffer = malloc(size* sizeof(uint8_t));
+	buffer = malloc(size* sizeof(int8_t));
 	assert(buffer);
-	memset(buffer, 0, size * sizeof(uint8_t));
+	memset(buffer, 0, size * sizeof(int8_t));
 	buffer_handle = circular_buf_init(buffer, size);
 }
 
@@ -82,10 +85,6 @@ TEST_GROUP_RUNNER(init)
 
 TEST_GROUP(enqueue);
 
-// Test elements to enqeueue
-static uint8_t element[] = {
-	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'
-};
 static bool overwrite;
 
 TEST_SETUP(enqueue)
@@ -155,7 +154,7 @@ TEST(enqueue, overwritefalse_is_full)
 	TEST_ASSERT_TRUE(circular_buf_full(buffer_handle));
 }
 
-TEST(enqueue, overwritetrue_return_successfull_with_overwrite)
+TEST(enqueue, overwritetrue_return_success_with_overwrite)
 {
 	overwrite = true;
 
@@ -165,6 +164,20 @@ TEST(enqueue, overwritetrue_return_successfull_with_overwrite)
 	}
 
 	TEST_ASSERT_EQUAL_INT(SUCCESS_BUFFER_FULL, ret);
+}
+
+TEST(enqueue, overwritetrue_count_doesnt_increment)
+{
+	overwrite = true;
+
+	for (i=0; i <= (size+1); i++)
+	{
+		cirular_buf_enqueue(buffer_handle, element[i], overwrite);
+	}
+
+	ret = circular_buf_count(buffer_handle);
+
+	TEST_ASSERT_EQUAL_INT(size, ret);
 }
 
 TEST(enqueue, overwritetrue_is_full_with_overwrite)
@@ -188,8 +201,76 @@ TEST_GROUP_RUNNER(enqueue)
 	RUN_TEST_CASE(enqueue, overwritefalse_return_errorfull);
 	RUN_TEST_CASE(enqueue, overwritefalse_count_doesnt_increment);
 	RUN_TEST_CASE(enqueue, overwritefalse_is_full);
-	RUN_TEST_CASE(enqueue, overwritetrue_return_successfull_with_overwrite);
+	RUN_TEST_CASE(enqueue, overwritetrue_return_success_with_overwrite);
+	RUN_TEST_CASE(enqueue, overwritetrue_count_doesnt_increment);
 	RUN_TEST_CASE(enqueue, overwritetrue_is_full_with_overwrite);
+}
+
+
+//---------------------------------------------------------------------/
+
+TEST_GROUP(dequeue);
+	// Return element for dequeue
+	int8_t actual;
+
+TEST_SETUP(dequeue)
+{
+	buffer = malloc(size* sizeof(int8_t));
+	assert(buffer);
+	memset(buffer, 0, size * sizeof(int8_t));
+	buffer_handle = circular_buf_init(buffer, size);
+}
+
+TEST_TEAR_DOWN(dequeue)
+{
+	free(buffer);
+}
+
+TEST(dequeue, return_success_when_not_empty)
+{
+	int8_t expected = element[0];
+
+	cirular_buf_enqueue(buffer_handle, expected, false);
+	ret = circular_buf_dequeue(buffer_handle, &actual);
+
+	TEST_ASSERT_EQUAL_INT(SUCCESS, ret);
+}
+
+TEST(dequeue, return_bufferempty_when_empty)
+{
+	ret = circular_buf_dequeue(buffer_handle, &actual);
+
+	TEST_ASSERT_EQUAL_INT(BUFFER_EMPTY, ret);
+}
+
+TEST(dequeue, correct_elemement_dequeued_single_enqueue)
+{
+	int8_t expected = element[0];
+
+	cirular_buf_enqueue(buffer_handle, expected, false);
+	circular_buf_dequeue(buffer_handle, &actual);
+
+	TEST_ASSERT_EQUAL_INT(expected, actual);
+}
+
+TEST(dequeue, count_decrements)
+{
+	int8_t expected = element[0];
+
+	cirular_buf_enqueue(buffer_handle, expected, false);
+	circular_buf_dequeue(buffer_handle, &actual);
+
+	TEST_ASSERT_EQUAL_INT(0, circular_buf_count(buffer_handle));
+}
+
+
+
+TEST_GROUP_RUNNER(dequeue)
+{
+	RUN_TEST_CASE(dequeue, return_success_when_not_empty);
+	RUN_TEST_CASE(dequeue, return_bufferempty_when_empty);
+	RUN_TEST_CASE(dequeue, correct_elemement_dequeued_single_enqueue);
+	RUN_TEST_CASE(dequeue, count_decrements);
 }
 
 
@@ -199,9 +280,9 @@ TEST_GROUP(full);
 
 TEST_SETUP(full)
 {
-	buffer = malloc(size* sizeof(uint8_t));
+	buffer = malloc(size* sizeof(int8_t));
 	assert(buffer);
-	memset(buffer, 0, size * sizeof(uint8_t));
+	memset(buffer, 0, size * sizeof(int8_t));
 	buffer_handle = circular_buf_init(buffer, size);
 }
 
@@ -234,9 +315,9 @@ TEST_GROUP(empty);
 
 TEST_SETUP(empty)
 {
-	buffer = malloc(size* sizeof(uint8_t));
+	buffer = malloc(size* sizeof(int8_t));
 	assert(buffer);
-	memset(buffer, 0, size * sizeof(uint8_t));
+	memset(buffer, 0, size * sizeof(int8_t));
 	buffer_handle = circular_buf_init(buffer, size);
 }
 

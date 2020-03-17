@@ -25,22 +25,30 @@
 
 #define  PRINT_INFO		0
 
+/*** Locals ***/
 struct circular_buf_t {
-	uint8_t * buffer;		// Byte array for storage, index decided by head or tail
+	int8_t * buffer;		// Byte array for storage, index decided by head or tail
 	size_t 	head;			// Incremented when element is added
 	size_t 	tail;			// Incremented when element is removed
 	size_t 	size; 			// Maximum number of elements
 	bool 	full;
 };
 
-/* Locals */
 static void
-push_to_head( cbuf_handle_t cbuf, uint8_t element )
+push_to_head( cbuf_handle_t cbuf, int8_t element )
 {
 	assert(cbuf && element && cbuf->buffer);
 
 	/* adv head to loclation (0-maxsize) based on % of maxsize */
 	cbuf->buffer[cbuf->head] = element;	
+}
+
+static int8_t
+pop_from_tail( cbuf_handle_t cbuf )
+{
+	assert( cbuf && cbuf->buffer);
+
+	return cbuf->buffer[cbuf->tail];
 }
 
 static void
@@ -61,11 +69,11 @@ advance_tail( cbuf_handle_t cbuf )
 	cbuf->tail = (cbuf->tail + 1) % cbuf->size;	
 }
 
+
 /*** Circular Buffer API ***/
-//TODO: Add overwrite or error if full boolean
-//TODO: implement handle?
+
 cbuf_handle_t
-circular_buf_init (uint8_t* buffer, size_t size)
+circular_buf_init (int8_t* buffer, size_t size)
 {
 	assert(buffer && size);
 
@@ -149,10 +157,9 @@ circular_buf_count(cbuf_handle_t cbuf)
 
 
 int 
-cirular_buf_enqueue (cbuf_handle_t cbuf, uint8_t element, bool overwrite)
+cirular_buf_enqueue (cbuf_handle_t cbuf, int8_t element, bool overwrite)
 {
 	assert(cbuf && element && cbuf->buffer);
-
 
 	if ( !cbuf->full )
 	{
@@ -180,5 +187,24 @@ cirular_buf_enqueue (cbuf_handle_t cbuf, uint8_t element, bool overwrite)
 		}
 	}
 		
+	return SUCCESS;
+}
+
+int
+circular_buf_dequeue(cbuf_handle_t cbuf, int8_t * element)
+{
+	assert(cbuf && cbuf->buffer);
+
+	if(!circular_buf_empty(cbuf))
+	{
+		*element = pop_from_tail( cbuf );
+		advance_tail( cbuf );
+	}
+	else
+	{
+		return BUFFER_EMPTY;
+	}
+	
+
 	return SUCCESS;
 }
