@@ -193,18 +193,18 @@ cirular_buf_enqueue (cbuf_handle_t cbuf, int8_t element, bool overwrite)
 int
 circular_buf_dequeue(cbuf_handle_t cbuf, int8_t * element)
 {
-	assert(cbuf && cbuf->buffer);
+	assert(cbuf && cbuf->buffer && element);
 
 	if(!circular_buf_empty(cbuf))
 	{
 		*element = pop_from_tail( cbuf );
 		advance_tail( cbuf );
+		cbuf->full = false;
 	}
 	else
 	{
 		return BUFFER_EMPTY;
 	}
 	
-
 	return SUCCESS;
 }
